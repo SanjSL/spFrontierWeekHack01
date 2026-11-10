@@ -7,6 +7,31 @@ set -euo pipefail
 # Region: swedencentral
 # =============================================================================
 
+# --- Azure authentication ----------------------------------------------------
+# GitHub Actions supplies an OIDC request endpoint when id-token: write is
+# enabled. Use it to exchange a GitHub token for Azure access without a secret.
+if [[ -n "${AZURE_CLIENT_ID:-}" || -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" || -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]]; then
+    : "${AZURE_CLIENT_ID:?Set the AZURE_CLIENT_ID GitHub secret to the user-assigned managed identity client ID.}"
+    : "${AZURE_TENANT_ID:?Set the AZURE_TENANT_ID GitHub secret.}"
+    : "${AZURE_SUBSCRIPTION_ID:?Set the AZURE_SUBSCRIPTION_ID GitHub secret.}"
+    : "${ACTIONS_ID_TOKEN_REQUEST_URL:?Run this script in GitHub Actions with id-token: write permission.}"
+    : "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:?Run this script in GitHub Actions with id-token: write permission.}"
+
+    OIDC_TOKEN=$(curl --fail --silent --show-error --get \
+        --header "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+        --data-urlencode "audience=api://AzureADTokenExchange" \
+        "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq --exit-status --raw-output '.value | select(type == "string" and length > 0)')
+
+    echo ">>> Authenticating to Azure with GitHub Actions OIDC..."
+    az login \
+        --service-principal \
+        --username "$AZURE_CLIENT_ID" \
+        --tenant "$AZURE_TENANT_ID" \
+        --federated-token "$OIDC_TOKEN" \
+        --output none
+    az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+fi
+
 # --- Azure CLI extensions ----------------------------------------------------
 # Auto-install required CLI extensions non-interactively (no Y/n prompts).
 az config set extension.use_dynamic_install=yes_without_prompt --only-show-errors >/dev/null 2>&1 || true

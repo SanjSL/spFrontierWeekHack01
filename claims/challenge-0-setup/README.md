@@ -22,9 +22,9 @@ By the end of this challenge, you will have:
 >
 > Subscription **Owner** (or Contributor) rights alone are **not** sufficient. Those grant control-plane access to create and manage resources, but building and running agents are data-plane operations that require the separate **Foundry User** role assigned on the Foundry account. An Owner can self-assign it; a Contributor must ask an admin to assign it after deployment.
 
-There are two ways to get started — pick one:
+Choose one of these ways to get started:
 
-> **First step for both options:** [Fork this repository](https://github.com/microsoft/FrontierWeekHack/fork) to your own GitHub account.
+> **First step:** [Fork this repository](https://github.com/microsoft/FrontierWeekHack/fork) to your own GitHub account.
 
 ### Option A: GitHub Codespaces (recommended)
 
@@ -42,9 +42,28 @@ az login
 
 4. Continue to **Deploy Infrastructure** below.
 
+### Option B: GitHub Actions with Azure OIDC
+
+To deploy without running `az login` yourself, configure a federated credential
+for a **user-assigned managed identity** in Microsoft Entra ID. Set its subject
+to `repo:OWNER/REPOSITORY:ref:refs/heads/main` for your fork and its audience
+to `api://AzureADTokenExchange`. Grant the identity the required Azure roles
+on the subscription.
+
+In your fork's **Settings → Secrets and variables → Actions**, add these
+repository secrets:
+
+- `AZURE_CLIENT_ID` — the managed identity's client ID
+- `AZURE_TENANT_ID` — the Microsoft Entra tenant ID
+- `AZURE_SUBSCRIPTION_ID` — the Azure subscription ID
+
+Then go to **Actions → Deploy Claims Infrastructure → Run workflow** and run it
+from `main`. The workflow exchanges a short-lived GitHub OIDC token for Azure
+access and runs the same `deploy.sh` script. No client secret is needed.
+
 ---
 
-### Option B: Local environment
+### Option C: Local environment
 
 Run everything on your own machine. Requires Python 3.10+ and Azure CLI.
 
