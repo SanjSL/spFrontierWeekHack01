@@ -46,9 +46,20 @@ az login
 
 To deploy without running `az login` yourself, configure a federated credential
 for a **user-assigned managed identity** in Microsoft Entra ID. Set its subject
-to `repo:OWNER/REPOSITORY:ref:refs/heads/main` for your fork and its audience
-to `api://AzureADTokenExchange`. Grant the identity the required Azure roles
-on the subscription.
+to the exact `sub` value GitHub reports for the workflow run, and its audience
+to `api://AzureADTokenExchange`. GitHub may include immutable owner and
+repository IDs in the subject, so it may not be the older
+`repo:OWNER/REPOSITORY:ref:refs/heads/main` format. For this repository, the
+subject from the AADSTS700213 error is:
+
+```text
+repo:SanjSL@61635484/spFrontierWeekHack01@1452671017:ref:refs/heads/main
+```
+
+In the identity's federated credential, also set the issuer to
+`https://token.actions.githubusercontent.com`. If using a fork, use the subject
+reported for that fork's workflow run instead. Grant the identity the required
+Azure roles on the subscription.
 
 In your fork's **Settings → Secrets and variables → Actions**, add these
 repository secrets:
